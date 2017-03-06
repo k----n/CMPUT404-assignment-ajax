@@ -3,10 +3,10 @@
   <head> 
     <title>AJAX Assignment</title> 
     <meta charset="utf-8" /> 
-    <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
+    <meta content='width=device-width, height=device-height, initial-scale=1.0, maximum-scale=1.0, user-scalable=0' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
-        Copyright 2013 Abram Hindle
+        Copyright 2013 Abram Hindle, Kalvin Eng
         
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
     "/>
     <script src="json2.js"></script>
   </head> 
-  <body bgcolor="black" height="100%" width="100%"> 
+  <body bgcolor="#2A363B" height="100%" width="100%"> 
     <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
     <script>
 var canvas = document.getElementById('c');
@@ -40,6 +40,8 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
                 if (xhr.status==200) {
                     //XXX: parse some JSON from the request!
                     //XXX: Pass the data to the callback!
+                   callback(JSON.parse(xhr.responseText));
+                   //console.log(JSON.parse(xhr.responseText));
                 }
             } 
             catch(e) {
@@ -50,32 +52,49 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
     //XXX: POST to a URL
     //XXX: set the mimetype and the accept headers!
     // Remember to use application/json !
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Accept", "application/json");
+    xhr.setRequestHeader("Content-Type", "application/json");
+    var body = objects ? JSON.stringify(objects) : null;
+    xhr.send(body);    
 }
 
 
 world = {};
 
 //XXX: TODO Make this prettier!
+// Code by MDN from https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Drawing_shapes
 function drawCircle(context,entity) {
+    // smiley face :)
     with(context) {
-        beginPath();              
-        lineWidth = 3;
+        beginPath();  
         var x = entity["x"];
-        var y = entity["y"];
-        //moveTo(x,y);
-        fillStyle = entity["colour"];
-        strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+        var y = entity["y"];   
+        fillStyle = entity["colour"]; 
+        strokeStyle = fillStyle;        
+        var r = (entity["radius"])?entity["radius"]:50;
+        var eye = r/10;
+        var mouth = r * 0.7;
+        var eye1 = r * 0.2;
+        var eye2 = r *0.3;
+        var eyex = r * 0.4;
+        arc(x, y, r, 0, Math.PI * 2, true); // Outer circle
+        moveTo(x+mouth, y);
+        arc(x, y, mouth, 0, Math.PI, false);  // Mouth (clockwise)
+        moveTo(x-eye1, y-eye1);
+        arc(x-eye2, y-eye1, eye, 0, Math.PI * 2, true);  // Left eye
+        moveTo(x+eyex, y-eye1);
+        arc(x+eye2, y-eye1, eye, 0, Math.PI * 2, true);  // Right eye 
         stroke();                                
     }
 }
 
 function prepEntity(entity) {
     if (!entity["colour"]) {
-        entity["colour"] = "#FF0000";
+        entity["colour"] = "#FECEA8";
     }
     if (!entity["radius"]) {
-        entity["radius"] = 50;
+        entity["radius"] = 25;
     }
     return entity;
 }
@@ -83,7 +102,7 @@ function prepEntity(entity) {
 function clearFrame() {
     with(context) {
 	moveTo(0,0);
-	fillStyle = "#000";
+	fillStyle = "#2A363B";
 	fillRect(0,0,W,H);
     }
 
@@ -138,7 +157,7 @@ function addEntity(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+    sendJSONXMLHTTPRequest(window.location.origin + "/entity/" + entity, data, function() {});
 }
 
 var counter = 0;
@@ -247,21 +266,25 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#FF847C'});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#FECEA8'});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'colour':'#E84A5F',
+                          'radius':25});
 });
 
 
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
+    sendJSONXMLHTTPRequest(window.location.origin + "/world", null, function(data) {
+        world = data;
+        drawNextFrame();
+    });
     drawFrame();
 }
 
